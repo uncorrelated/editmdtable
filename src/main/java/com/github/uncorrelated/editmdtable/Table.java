@@ -1389,9 +1389,9 @@ public class Table extends Container {
     }
 
     private void extendSizeToPaste(int[] size) {
-	int[] srows = jt.getSelectedColumns();
-	int[] scols = jt.getSelectedRows();
-	if(1 != srows.length * scols.length)
+	int[] srows = jt.getSelectedRows();
+	int[] scols = jt.getSelectedColumns();
+	if(1 < srows.length * scols.length)
 	    return;
 	int nrow = jt.getRowCount();
 	int ncol = jt.getColumnCount();
