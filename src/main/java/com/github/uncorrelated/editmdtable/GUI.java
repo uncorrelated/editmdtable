@@ -33,6 +33,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -270,46 +271,45 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	});
 	jm[3].add(jmi_redo);
 
-	JMenuItem jmi_copy = new JMenuItem(rb.getString("menu.copy"));
-	jmi_copy.addActionListener(new ActionListener() {
-	    @Override
-	    public void actionPerformed(ActionEvent e) {
+        Action a_jmi_copy = new AbstractAction(rb.getString("menu.copy")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
 		Table t1 = (Table) jtp.getSelectedComponent();
 		if (null != t1) {
 		    t1.copy();
 		}
 	    }
-	});
-	jm[3].add(jmi_copy);
-	popup_menu.add(jmi_copy);
+        };
+	jm[3].add(new JMenuItem(a_jmi_copy));
+	popup_menu.add(new JMenuItem(a_jmi_copy));
 
-	JMenuItem jmi_cut = new JMenuItem(rb.getString("menu.cut"));
-	jmi_cut.addActionListener(new ActionListener() {
-	    @Override
-	    public void actionPerformed(ActionEvent e) {
+        Action a_jmi_cut = new AbstractAction(rb.getString("menu.cut")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
 		Table t1 = (Table) jtp.getSelectedComponent();
 		if (null != t1) {
 		    t1.cut();
 		}
 	    }
-	});
-	jm[3].add(jmi_cut);
-	popup_menu.add(jmi_cut);
+        };
+	jm[3].add(new JMenuItem(a_jmi_cut));
+	popup_menu.add(new JMenuItem(a_jmi_cut));
 
-	JMenuItem jmi_paste = new JMenuItem(rb.getString("menu.paste"));
-	jmi_paste.addActionListener(new ActionListener() {
-	    @Override
-	    public void actionPerformed(ActionEvent e) {
+        Action a_jmi_paste = new AbstractAction(rb.getString("menu.paste")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
 		Table t1 = (Table) jtp.getSelectedComponent();
 		if (null != t1) {
 		    t1.paste();
 		}
 	    }
-	});
-	jm[3].add(jmi_paste);
-	popup_menu.add(jmi_paste);
-	popup_menu.add(jmi_insert);
+        };
+	jm[3].add(new JMenuItem(a_jmi_paste));
+	popup_menu.add(new JMenuItem(a_jmi_paste));
 
+	popup_menu.add(jmi_insert);
+	popup_menu.add(new JMenuItem(a_copy_to_label));
+	
 	JMenuItem jmi_replace = new JMenuItem(rb.getString("menu.replace"));
 	jmi_replace.addActionListener((e) -> {
 	    Table t1 = (Table) jtp.getSelectedComponent();
