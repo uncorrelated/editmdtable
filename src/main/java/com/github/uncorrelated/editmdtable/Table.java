@@ -928,23 +928,21 @@ public class Table extends Container {
 
     private class PasteEdit extends AbstractUndoableEdit {
 
-	private final char[] pastedText;
-	private final List previousText;
+	private final List<Cell> cells;
 
-	public PasteEdit(char[] pastedText, List previousText) {
-	    this.pastedText = pastedText;
-	    this.previousText = previousText;
+	public PasteEdit(final List<Cell> cells) {
+	    this.cells = cells;
 	}
 
 	@Override
 	public void undo() throws CannotUndoException {
 	    super.undo();
 	    IsOnGoingUndoRedo = true;
-	    Iterator it = previousText.iterator();
 	    DefaultTableModel model = (DefaultTableModel) jt.getModel();
+	    Iterator it = cells.iterator();
 	    while (it.hasNext()) {
 		Cell c = (Cell) it.next();
-		model.setValueAt(c.value, c.r, c.c);
+		model.setValueAt(c.old_str, c.model_r, c.model_c);
 	    }
 	    IsOnGoingUndoRedo = false;
 	}
@@ -952,8 +950,14 @@ public class Table extends Container {
 	@Override
 	public void redo() throws CannotRedoException {
 	    super.redo();
-	    Cell c = (Cell) previousText.get(0);
-	    pasteChar((DefaultTableModel) jt.getModel(), c.r, c.c, pastedText, '\t');
+	    IsOnGoingUndoRedo = true;
+	    DefaultTableModel model = (DefaultTableModel) jt.getModel();
+	    Iterator it = cells.iterator();
+	    while (it.hasNext()) {
+		Cell c = (Cell) it.next();
+		model.setValueAt(c.new_str, c.model_r, c.model_c);
+	    }
+	    IsOnGoingUndoRedo = false;
 	}
     }
 
@@ -1236,22 +1240,80 @@ public class Table extends Container {
 
     private class Cell {
 
-	public int r, c;
-	public String value;
+	public int view_r, view_c, model_r, model_c;
+	public String old_str, new_str;
 
-	public Cell(int r, int c, String value) {
-	    this.r = r;
-	    this.c = c;
-	    this.value = value;
+	public Cell(int view_r, int view_c, int model_r, int model_c, String old_str, String new_str) {
+	    this.view_r = view_r;
+	    this.view_c = view_c;
+	    this.model_r = model_r;
+	    this.model_c = model_c;
+	    this.old_str = old_str;
+	    this.new_str = new_str;
 	}
     }
 
-    private List pasteChar(DefaultTableModel model, int row, int column, final char[] a, final char separator) {
-	IsOnGoingUndoRedo = true;
-	ArrayList<Cell> previous = new ArrayList<Cell>();
+    public void pasteChar(final char[] a, final int[] size, final char separator) {
 
-	final int nr = jt.getRowCount();
-	final int nc = jt.getColumnCount();
+	DefaultTableModel model = (DefaultTableModel) jt.getModel();
+	int[] columns = jt.getSelectedColumns();
+	int[] rows = jt.getSelectedRows();
+	String[][] pa = pasteToArray(a, size, separator, '"');
+
+	ArrayList<Cell> cells = new ArrayList();
+	int base_c = columns[0];
+	int base_r = rows[0];
+
+	// 非範囲選択（選択が1行1列）のときは、選択範囲をペーストされた行列にあわせる
+	int rlen = rows.length;
+	int clen = columns.length;
+	if (1 == rlen * clen) {
+
+	    rlen = pa.length;
+	    int nrow = jt.getRowCount();
+	    if (base_r + rlen >= nrow) {
+		// 選択範囲が行の最大値を超えないようにする
+		rlen = nrow - base_r;
+	    }
+	    rows = new int[rlen];
+	    for (int i = 0; i < rlen; i++) {
+		rows[i] = base_r + i;
+	    }
+
+	    clen = pa[0].length;
+	    int ncol = jt.getColumnCount();
+	    if (base_c + clen >= ncol) {
+		// 選択範囲が列の最大値を超えないようにする
+		clen = ncol - base_c;
+	    }
+	    columns = new int[clen];
+	    for (int j = 0; j < clen; j++) {
+		columns[j] = base_c + j;
+	    }
+	}
+
+	IsOnGoingUndoRedo = true;
+
+	for (int i = 0; i < rows.length; i++) {
+	    int r = (rows[i] - base_r) % pa.length;
+	    for (int j = 0; j < columns.length; j++) {
+		int c = (columns[j] - base_c) % pa[0].length;
+		String s = pa[r][c];
+		int model_r = jt.convertRowIndexToModel(rows[i]);
+		int model_c = jt.convertColumnIndexToModel(columns[j]);
+		cells.add(new Cell(rows[i], columns[j], model_r, model_c, (String) model.getValueAt(model_r, model_c), s));
+		model.setValueAt(s, model_r, model_c);
+	    }
+	}
+
+	IsOnGoingUndoRedo = false;
+	undoManager.addEdit(new PasteEdit(cells));
+    }
+
+    private static String[][] pasteToArray(final char[] a, final int[] size, final char separator, final char quote_character) {
+	final int nr = size[0];
+	final int nc = size[1];
+	String[][] m = new String[nr][nc];
 	char[] stack = new char[a.length];
 	int sp = 0, i = 0, j = 0;
 	boolean escaped = true, quoated = false;
@@ -1260,27 +1322,17 @@ public class Table extends Container {
 		if (quoated) {
 		    stack[sp++] = a[k];
 		} else {
-		    if (nc > column + j && nr > row + i) {
-			int r = jt.convertRowIndexToModel(row + i);
-			int c = jt.convertColumnIndexToModel(column + j);
-			previous.add(new Cell(r, c, (String) model.getValueAt(r, c)));
-			model.setValueAt(new String(stack, 0, sp), r, c);
-		    }
+		    m[i][j] = new String(stack, 0, sp);
 		    sp = 0;
 		    j++;
 		}
 	    } else if ('\n' == a[k]) {
-		if (nc > column + j && nr > row + i) {
-		    int r = jt.convertRowIndexToModel(row + i);
-		    int c = jt.convertColumnIndexToModel(column + j);
-		    previous.add(new Cell(r, c, (String) model.getValueAt(r, c)));
-		    model.setValueAt(new String(stack, 0, sp), r, c);
-		}
+		m[i][j] = new String(stack, 0, sp);
 		sp = 0;
 		j = 0;
 		i++;
 	    } else if ('\r' == a[k]) {
-	    } else if ('\"' == a[k]) {
+	    } else if ('"' == a[k]) {
 		if (escaped) {
 		    stack[sp++] = a[k];
 		    escaped = false;
@@ -1297,50 +1349,53 @@ public class Table extends Container {
 		escaped = false;
 	    }
 	}
-	if (0 < sp && nc > column + j && nr > row + i) {
-	    int r = jt.convertRowIndexToModel(row + i);
-	    int c = jt.convertColumnIndexToModel(column + j);
-	    previous.add(new Cell(r, c, (String) model.getValueAt(r, c)));
-	    model.setValueAt(new String(stack, 0, sp), r, c);
+	if (0 < sp) {
+	    m[i][j] = new String(stack, 0, sp);
 	}
-	IsOnGoingUndoRedo = false;
-	return previous;
+	return m;
     }
 
-    public List pasteChar(final char[] a, final char separator) {
-
-	DefaultTableModel model = (DefaultTableModel) jt.getModel();
-	int column = jt.getSelectedColumn();
-	int row = jt.getSelectedRow();
-
-	return pasteChar(model, row, column, a, separator);
-    }
-
-    private static int[] pasteSize(final char[] a, final char separator) {
+    private static int[] pasteSize(final char[] a, final char separator, final char quote_character) {
 	int i = 1, j = 1, max_j = 1;
+	boolean escaped = true, quoated = false;
 	for (int n = 0; n < a.length; n++) {
-	    if ('\n' == a[n]) {
+	    if (separator == a[n]) {
+		if (!quoated) {
+		    max_j = Integer.max(max_j, j++);
+		}
+	    } else if ('\n' == a[n]) {
 		i++;
 		max_j = Integer.max(max_j, j);
 		j = 0;
-	    } else if (separator == a[n]) {
-		j++;
+	    } else if ('\r' == a[n]) {
+		// 復帰は消す
+	    } else if (quote_character == a[n]) {
+		if (escaped) {
+		    escaped = false;
+		} else {
+		    quoated = !quoated;
+		}
+	    } else if ('\\' == a[n]) {
+		escaped = !escaped;
+	    } else {
+		escaped = false;
 	    }
 	}
-	char e = a[a.length - 1];
-	if ('\n' == e || '\r' == e) {
+	if ('\n' == a[a.length - 1]) {
 	    i--;
 	}
-	max_j = Integer.max(max_j, j);
 	return new int[]{i, max_j};
     }
 
-    private void extendSizeToPaste(final char[] a) {
-	int[] size = pasteSize(a, '\t');
+    private void extendSizeToPaste(int[] size) {
+	int[] srows = jt.getSelectedColumns();
+	int[] scols = jt.getSelectedRows();
+	if(1 != srows.length * scols.length)
+	    return;
 	int nrow = jt.getRowCount();
 	int ncol = jt.getColumnCount();
-	int r = jt.getSelectedRow();
-	int c = jt.getSelectedColumn();
+	int r = srows[0];
+	int c = scols[0];
 	int dc = size[1] - ncol + c;
 	int dr = size[0] - nrow + r;
 	String msg = null;
@@ -1357,11 +1412,11 @@ public class Table extends Container {
 	if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(this, msg, "表の拡張", JOptionPane.YES_NO_OPTION)) {
 	    DefaultTableModel model = (DefaultTableModel) jt.getModel();
 	    int[] cols = new int[Integer.max(dc, 0)];
-	    for(int j = 0; j < cols.length; j++){
+	    for (int j = 0; j < cols.length; j++) {
 		cols[j] = ncol++;
 	    }
 	    int[] rows = new int[Integer.max(dr, 0)];
-	    for(int i=0; i<rows.length; i++){
+	    for (int i = 0; i < rows.length; i++) {
 		rows[i] = nrow++;
 	    }
 	    insertColumn(cols);
@@ -1376,9 +1431,10 @@ public class Table extends Container {
 	if (null != t) {
 	    try {
 		char[] a = ((String) t.getTransferData(DataFlavor.stringFlavor)).toCharArray();
-		extendSizeToPaste(a);
+		int[] size = pasteSize(a, '\t', '"');
+		extendSizeToPaste(size);
+		pasteChar(a, size, '\t');
 		gui.dataChanged();
-		undoManager.addEdit(new PasteEdit(a, pasteChar(a, '\t')));
 	    } catch (UnsupportedFlavorException ex) {
 		Logger.getLogger(Table.class.getName()).log(Level.SEVERE, null, ex);
 	    } catch (IOException ex) {
