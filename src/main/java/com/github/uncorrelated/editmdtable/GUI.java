@@ -246,6 +246,17 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 		t1.clearSelection();
 	    }
 	});
+	
+        Action a_copy_to_label = new AbstractAction(rb.getString("menu.copy_to_label")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+		Table t1 = (Table) jtp.getSelectedComponent();
+		if (null != t1) {
+		    t1.copyFromRawToLabel();
+		}
+	    }
+        };
+	jm[2].add(new JMenuItem(a_copy_to_label));
 
 	JMenuItem jmi_undo = new JMenuItem(rb.getString("menu.undo"));
 	jmi_undo.addActionListener(new ActionListener() {

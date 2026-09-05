@@ -585,6 +585,43 @@ public class Table extends Container {
 	});
     }
 
+    private class ColumnLabel {
+	final TableColumn tc;
+	final String old_str, new_str;
+	public ColumnLabel(TableColumn tc, String old_str, String new_str){
+	    this.tc = tc;
+	    this.old_str = old_str;
+	    this.new_str = new_str;
+	}
+    }
+    
+    public void copyFromRawToLabel() {
+	DefaultTableModel model = (DefaultTableModel) jt.getModel();
+	int[] rows = jt.getSelectedRows();
+	int[] columns = jt.getSelectedColumns();
+	ArrayList<ColumnLabel>al = new ArrayList();
+
+	TableColumnModel tcm = jt.getColumnModel();
+	IsOnGoingUndoRedo = true;
+	
+	for(int i = 0; i < rows.length; i++){
+	    int model_r = jt.convertRowIndexToModel(rows[i]);
+	    for(int j = 0; j < columns.length; j++){
+		int model_c = jt.convertColumnIndexToModel(columns[j]);
+		TableColumn tc = tcm.getColumn(model_c);
+		String old_str = (String)tc.getHeaderValue();
+		String new_str = (String)model.getValueAt(rows[i], columns[j]);
+		tc.setHeaderValue(new_str);
+		al.add(new ColumnLabel(tc, old_str, new_str));
+	    }
+	}
+
+	IsOnGoingUndoRedo = false;
+	undoManager.addEdit(new CopyFromRawToLabelEdit(al));
+	jt.getTableHeader().repaint();
+	gui.dataChanged();
+    }
+
     private static int[] getHorizonalAlign(String[][] table, int row) {
 	if (!(table[0].length > row)) {
 	    return null;
@@ -961,7 +998,48 @@ public class Table extends Container {
 	}
     }
 
-    private class ClearEdit extends AbstractUndoableEdit {
+    private class CopyFromRawToLabelEdit extends AbstractUndoableEdit {
+
+	private final List<ColumnLabel> labels;
+
+	public CopyFromRawToLabelEdit(final List<ColumnLabel> labels) {
+	    this.labels = labels;
+	}
+
+	@Override
+	public void undo() throws CannotUndoException {
+	    super.undo();
+	    IsOnGoingUndoRedo = true;
+
+	    Iterator it = labels.iterator();
+	    while (it.hasNext()) {
+		ColumnLabel cl = (ColumnLabel) it.next();
+		TableColumn tc = cl.tc;
+		tc.setHeaderValue(cl.old_str);
+	    }
+
+	    IsOnGoingUndoRedo = false;
+	    jt.getTableHeader().repaint();
+	}
+
+	@Override
+	public void redo() throws CannotRedoException {
+	    super.redo();
+	    IsOnGoingUndoRedo = true;
+
+	    Iterator it = labels.iterator();
+	    while (it.hasNext()) {
+		ColumnLabel cl = (ColumnLabel) it.next();
+		TableColumn tc = cl.tc;
+		tc.setHeaderValue(cl.new_str);
+	    }
+
+	    IsOnGoingUndoRedo = false;
+	    jt.getTableHeader().repaint();
+	}
+    }
+	
+	private class ClearEdit extends AbstractUndoableEdit {
 
 	private final int[] model_rows, model_cols;
 	private final String[][] values;
