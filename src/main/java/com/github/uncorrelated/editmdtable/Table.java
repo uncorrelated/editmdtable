@@ -685,7 +685,6 @@ public class Table extends Container {
 	    }
 	});
 	jt.addMouseListener(gui);
-	jt.enableInputMethods(false);
 	return jt;
     }
 
