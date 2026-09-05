@@ -148,7 +148,7 @@ public class IO {
 	}
     }
 
-    private static final int BUFSIZE = 1024;
+    private static final int BUFSIZE = 1024*8;
     private static final int SIZE_OF_HEADING = 128;
 
     public static ArrayList<Chunk> listChunk(RandomAccessFile raf, RandomAccessFile tmpfh) throws IOException {

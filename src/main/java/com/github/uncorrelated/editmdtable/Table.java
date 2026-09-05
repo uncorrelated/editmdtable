@@ -1437,7 +1437,7 @@ public class Table extends Container {
 		int[] size = pasteSize(a, separator, '"');
 
 		// CSVのテキストが貼り付けられたらしきときの処理
-		if(2 <= size[0] && 1 == size[1]){
+		if(1 <= size[0] && 1 == size[1]){
 		    ResourceBundle rb = gui.getResourceBundle();
 		    for(int n = 0; n < a.length; n++){
 			if(',' == a[n]){
