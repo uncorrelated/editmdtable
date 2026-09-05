@@ -42,6 +42,7 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JSlider;
 import javax.swing.JTabbedPane;
@@ -358,7 +359,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
     }
 
     public void dataChanged() {
-	if (!IsUpdate) {
+	if (!IsUpdate && null != io && io.isWritable()) {
 	    IsUpdate = true;
 	    btn_save.setEnabled(true);
 	    jmi_save.setEnabled(true);
@@ -498,7 +499,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 			}
 
 			setNoUpdate();
-			
+
 		    } catch (IOException ex) {
 			Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
 		    } finally {
@@ -523,6 +524,17 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
     }
 
     public void save() {
+
+	if (null == io || !io.isWritable()) {
+	    JOptionPane.showMessageDialog(
+		    null,
+		    rb.getString("msg.not_writable.1"),
+		    rb.getString("msg.not_writable.2"),
+		    JOptionPane.ERROR_MESSAGE
+	    );
+	    return;
+	}
+
 	synchronized (jtp) {
 	    if (IsDoingIO || !IsUpdate) {
 		return;

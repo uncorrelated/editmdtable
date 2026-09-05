@@ -51,6 +51,10 @@ public class IO {
 	}
     }
 
+    public boolean isWritable() {
+	return null != tmpFileHandle;
+    }
+    
     public int[] listTable() {
 	if (null == mdFileHandle || null == chunkList) {
 	    return null;
