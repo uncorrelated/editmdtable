@@ -1410,7 +1410,8 @@ public class Table extends Container {
 	} else {
 	    return;
 	}
-	if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(this, msg, "表の拡張", JOptionPane.YES_NO_OPTION)) {
+	if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(this, msg,
+		rb.getString("paste.dialog.1"), JOptionPane.YES_NO_OPTION)) {
 	    DefaultTableModel model = (DefaultTableModel) jt.getModel();
 	    int[] cols = new int[Integer.max(dc, 0)];
 	    for (int j = 0; j < cols.length; j++) {
