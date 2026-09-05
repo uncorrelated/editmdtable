@@ -1469,8 +1469,9 @@ public class Table extends Container {
     private void extendSizeToPaste(int[] size) {
 	int[] srows = jt.getSelectedRows();
 	int[] scols = jt.getSelectedColumns();
-	if(1 < srows.length * scols.length)
+	if (1 < srows.length * scols.length) {
 	    return;
+	}
 	int nrow = jt.getRowCount();
 	int ncol = jt.getColumnCount();
 	int r = srows[0];
@@ -1515,10 +1516,10 @@ public class Table extends Container {
 		int[] size = pasteSize(a, separator, '"');
 
 		// CSVのテキストが貼り付けられたらしきときの処理
-		if(1 <= size[0] && 1 == size[1]){
+		if (1 <= size[0] && 1 == size[1]) {
 		    ResourceBundle rb = gui.getResourceBundle();
-		    for(int n = 0; n < a.length; n++){
-			if(',' == a[n]){
+		    for (int n = 0; n < a.length; n++) {
+			if (',' == a[n]) {
 			    if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(this,
 				    rb.getString("paste.msg.4"),
 				    rb.getString("paste.dialog.2"),
