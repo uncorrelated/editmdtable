@@ -29,15 +29,19 @@ public class IO {
 	if (file.exists()) {
 	    if (file.isFile()) {
 		mdFile = file;
-		try {
-		    tmpFile = File.createTempFile(getPrefix(file.getName()), ".tmp");
-		    tmpFile.deleteOnExit();
-		    tmpFileHandle = new RandomAccessFile(tmpFile, "rw");
-		} catch (IOException e) {
-		    // 一時ファイルをオープンできなくてもリードはする
-		    tmpFileHandle = null;
+		if (mdFile.canWrite()) {
+		    try {
+			tmpFile = File.createTempFile(getPrefix(file.getName()), ".tmp");
+			tmpFile.deleteOnExit();
+			tmpFileHandle = new RandomAccessFile(tmpFile, "rw");
+		    } catch (IOException e) {
+			// 一時ファイルをオープンできなくてもリードはする
+			tmpFileHandle = null;
+		    }
+		    mdFileHandle = new RandomAccessFile(file, "rw");
+		} else {
+		    mdFileHandle = new RandomAccessFile(file, "r");
 		}
-		mdFileHandle = new RandomAccessFile(file, "rw");
 		chunkList = listChunk(mdFileHandle, tmpFileHandle);
 	    } else {
 		throw new java.io.IOException(file.getName() + " isn't a file.");
@@ -108,6 +112,9 @@ public class IO {
 
     public void write() throws IOException {
 	if (null == tmpFileHandle) {
+	    if (!mdFile.canWrite()) {
+		throw new IOException(mdFile.getAbsolutePath() + " is not writable!");
+	    }
 	    throw new IOException("No temporary file!");
 	}
 	mdFileHandle.setLength(0);
