@@ -37,6 +37,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -824,6 +825,41 @@ public class Table extends Container {
 	}
     }
 
+    private class ExtendTableEdit extends AbstractUndoableEdit {
+
+	private final int row, col;
+	private final int[] view_rows, view_cols;
+
+	public ExtendTableEdit(int row, int col, int[] view_rows, int[] view_cols) {
+	    this.row = row;
+	    this.col = col;
+	    this.view_cols = view_cols;
+	    this.view_rows = view_rows;
+	}
+
+	@Override
+	public void undo() throws CannotUndoException {
+	    super.undo();
+	    DefaultTableModel model = (DefaultTableModel) jt.getModel();
+	    for (int i = view_rows.length - 1; i >= 0; i--) {
+		int row = view_rows[i];
+		model.removeRow(row);
+	    }
+	    for (int j = view_cols.length - 1; j >= 0; j--) {
+		jt.removeColumn(jt.getColumnModel().getColumn(view_cols[j]));
+	    }
+	    moveCursor(row, col);
+	}
+
+	@Override
+	public void redo() throws CannotRedoException {
+	    super.redo();
+	    insertColumn(view_cols);
+	    insertRows(view_rows);
+	    moveCursor(row, col);
+	}
+    }
+
     private class DeleteRowEdit extends AbstractUndoableEdit {
 
 	private final List<DeletedRow> deleted;
@@ -1179,7 +1215,7 @@ public class Table extends Container {
     public void deleteSelectedRow() {
 	int[] rows = jt.getSelectedRows();
 	DefaultTableModel model = (DefaultTableModel) jt.getModel();
-	ArrayList<DeletedRow>al = new ArrayList();
+	ArrayList<DeletedRow> al = new ArrayList();
 	for (int j = 0; j < rows.length; j++) {
 	    int row = rows[j];
 	    if (0 > row || jt.getRowCount() <= row) {
@@ -1212,7 +1248,7 @@ public class Table extends Container {
 
     private List pasteChar(DefaultTableModel model, int row, int column, final char[] a, final char separator) {
 	IsOnGoingUndoRedo = true;
-	ArrayList<Cell>previous = new ArrayList<Cell>();
+	ArrayList<Cell> previous = new ArrayList<Cell>();
 
 	final int nr = jt.getRowCount();
 	final int nc = jt.getColumnCount();
@@ -1280,11 +1316,67 @@ public class Table extends Container {
 	return pasteChar(model, row, column, a, separator);
     }
 
+    private static int[] pasteSize(final char[] a, final char separator) {
+	int i = 1, j = 1, max_j = 1;
+	for (int n = 0; n < a.length; n++) {
+	    if ('\n' == a[n]) {
+		i++;
+		max_j = Integer.max(max_j, j);
+		j = 0;
+	    } else if (separator == a[n]) {
+		j++;
+	    }
+	}
+	char e = a[a.length - 1];
+	if ('\n' == e || '\r' == e) {
+	    i--;
+	}
+	max_j = Integer.max(max_j, j);
+	return new int[]{i, max_j};
+    }
+
+    private void extendSizeToPaste(final char[] a) {
+	int[] size = pasteSize(a, '\t');
+	int nrow = jt.getRowCount();
+	int ncol = jt.getColumnCount();
+	int r = jt.getSelectedRow();
+	int c = jt.getSelectedColumn();
+	int dc = size[1] - ncol + c;
+	int dr = size[0] - nrow + r;
+	String msg = null;
+	ResourceBundle rb = gui.getResourceBundle();
+	if (dc > 0 && dr > 0) {
+	    msg = String.format(rb.getString("paste.msg.1"), dr, dc) + rb.getString("paste.msg.0");
+	} else if (dc > 0) {
+	    msg = String.format(rb.getString("paste.msg.2"), dc) + rb.getString("paste.msg.0");
+	} else if (dr > 0) {
+	    msg = String.format(rb.getString("paste.msg.3"), dr) + rb.getString("paste.msg.0");
+	} else {
+	    return;
+	}
+	if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(this, msg, "表の拡張", JOptionPane.YES_NO_OPTION)) {
+	    DefaultTableModel model = (DefaultTableModel) jt.getModel();
+	    int[] cols = new int[Integer.max(dc, 0)];
+	    for(int j = 0; j < cols.length; j++){
+		cols[j] = ncol++;
+	    }
+	    int[] rows = new int[Integer.max(dr, 0)];
+	    for(int i=0; i<rows.length; i++){
+		rows[i] = nrow++;
+	    }
+	    insertColumn(cols);
+	    insertRows(rows);
+	    moveCursor(r, c);
+	    undoManager.addEdit(new ExtendTableEdit(r, c, rows, cols));
+	}
+    }
+
     public void paste() {
 	Transferable t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(jt);
 	if (null != t) {
 	    try {
 		char[] a = ((String) t.getTransferData(DataFlavor.stringFlavor)).toCharArray();
+		extendSizeToPaste(a);
 		gui.dataChanged();
 		undoManager.addEdit(new PasteEdit(a, pasteChar(a, '\t')));
 	    } catch (UnsupportedFlavorException ex) {
@@ -1403,7 +1495,7 @@ public class Table extends Container {
 
     private void search(boolean IsReplace, boolean IsHorizonalMove, boolean IsBackward, boolean IsConfirming) {
 	IsOnGoingUndoRedo = true;
-	ArrayList<ReplacedCell>cells = new ArrayList<ReplacedCell>();
+	ArrayList<ReplacedCell> cells = new ArrayList<ReplacedCell>();
 
 	DefaultTableModel model = (DefaultTableModel) jt.getModel();
 	String target = search_text.getText();
