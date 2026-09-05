@@ -1384,6 +1384,7 @@ public class Table extends Container {
 	if ('\n' == a[a.length - 1]) {
 	    i--;
 	}
+	max_j = Integer.max(max_j, j);
 	return new int[]{i, max_j};
     }
 
@@ -1431,9 +1432,28 @@ public class Table extends Container {
 	if (null != t) {
 	    try {
 		char[] a = ((String) t.getTransferData(DataFlavor.stringFlavor)).toCharArray();
-		int[] size = pasteSize(a, '\t', '"');
+		char separator = '\t';
+		int[] size = pasteSize(a, separator, '"');
+
+		// CSVのテキストが貼り付けられたらしきときの処理
+		if(2 <= size[0] && 1 == size[1]){
+		    ResourceBundle rb = gui.getResourceBundle();
+		    for(int n = 0; n < a.length; n++){
+			if(',' == a[n]){
+			    if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(this,
+				    rb.getString("paste.msg.4"),
+				    rb.getString("paste.dialog.2"),
+				    JOptionPane.YES_NO_OPTION)) {
+				separator = ',';
+				size = pasteSize(a, separator, '"');
+				break;
+			    }
+			}
+		    }
+		}
+
 		extendSizeToPaste(size);
-		pasteChar(a, size, '\t');
+		pasteChar(a, size, separator);
 		gui.dataChanged();
 	    } catch (UnsupportedFlavorException ex) {
 		Logger.getLogger(Table.class.getName()).log(Level.SEVERE, null, ex);
