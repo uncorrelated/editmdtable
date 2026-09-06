@@ -320,7 +320,7 @@ public class Table extends Container {
 	im.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, ActionEvent.CTRL_MASK, false), "Paste");
 	am.put("Paste", new AbstractAction() {
 	    public void actionPerformed(ActionEvent e) {
-		paste();
+		paste(false);
 	    }
 	});
 	im.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, ActionEvent.SHIFT_MASK, false), "Clear");
@@ -1356,13 +1356,24 @@ public class Table extends Container {
 	}
     }
 
-    public void pasteChar(final char[] a, final int[] size, final char separator) {
+    public void pasteChar(final char[] a, int[] size, final char separator, boolean transpose) {
 
 	DefaultTableModel model = (DefaultTableModel) jt.getModel();
 	int[] columns = jt.getSelectedColumns();
 	int[] rows = jt.getSelectedRows();
 	String[][] pa = pasteToArray(a, size, separator, '"');
 
+	if(transpose){
+	    String[][] pa_t = new String[pa[0].length][pa.length];
+	    for(int i = 0; i < pa.length; i++){
+		for(int j = 0; j < pa[0].length; j++){
+		    pa_t[j][i] = pa[i][j];
+		}
+	    }
+	    size = new int[]{size[1], size[0]};
+	    pa = pa_t;
+	}
+	
 	ArrayList<Cell> cells = new ArrayList();
 	int base_c = columns[0];
 	int base_r = rows[0];
@@ -1491,7 +1502,10 @@ public class Table extends Container {
 	return new int[]{i, max_j};
     }
 
-    private void extendSizeToPaste(int[] size) {
+    private void extendSizeToPaste(int[] size, boolean transpose) {
+	if(transpose)
+	    size = new int[]{size[1], size[0]};
+
 	int[] srows = jt.getSelectedRows();
 	int[] scols = jt.getSelectedColumns();
 	if (1 < srows.length * scols.length) {
@@ -1532,7 +1546,7 @@ public class Table extends Container {
 	}
     }
 
-    public void paste() {
+    public void paste(boolean transpose) {
 	Transferable t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(jt);
 	if (null != t) {
 	    try {
@@ -1557,8 +1571,8 @@ public class Table extends Container {
 		    }
 		}
 
-		extendSizeToPaste(size);
-		pasteChar(a, size, separator);
+		extendSizeToPaste(size, transpose);
+		pasteChar(a, size, separator, transpose);
 		gui.dataChanged();
 	    } catch (UnsupportedFlavorException ex) {
 		Logger.getLogger(Table.class.getName()).log(Level.SEVERE, null, ex);

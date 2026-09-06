@@ -311,12 +311,24 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
             public void actionPerformed(ActionEvent e) {
 		Table t1 = (Table) jtp.getSelectedComponent();
 		if (null != t1) {
-		    t1.paste();
+		    t1.paste(false);
 		}
 	    }
         };
 	jm[3].add(new JMenuItem(a_jmi_paste));
 	popup_menu.add(new JMenuItem(a_jmi_paste));
+
+        Action a_jmi_paste_t = new AbstractAction(rb.getString("menu.paste.t")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+		Table t1 = (Table) jtp.getSelectedComponent();
+		if (null != t1) {
+		    t1.paste(true);
+		}
+	    }
+        };
+	jm[3].add(new JMenuItem(a_jmi_paste_t));
+	popup_menu.add(new JMenuItem(a_jmi_paste_t));
 
 	popup_menu.add(jmi_insert);
 	popup_menu.add(new JMenuItem(a_copy_to_label));
