@@ -10,6 +10,8 @@ import java.util.ResourceBundle;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 
 public class DirectionToAddDialog extends TemplateDialog {
 
@@ -34,6 +36,9 @@ public class DirectionToAddDialog extends TemplateDialog {
 	c.add(jrb_lower, BorderLayout.SOUTH);
 	add(c);
 
+	JSpinner js = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
+	add(js);
+
 	JButton jb_cancel = new JButton(rb.getString("cancel"));
 	jb_cancel.addActionListener(new ActionListener() {
 	    @Override
@@ -47,7 +52,7 @@ public class DirectionToAddDialog extends TemplateDialog {
 	jb_ok.addActionListener(new ActionListener() {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
-		ok();
+		ok((Integer)js.getValue());
 	    }
 	});
 	add(jb_ok);
@@ -62,15 +67,15 @@ public class DirectionToAddDialog extends TemplateDialog {
 	setVisible(false);
     }
 
-    private void ok() {
+    private void ok(int n) {
 	if (jrb_right.isSelected()) {
-	    t.insertColumn(Direction.RIGHT);
+	    t.insertColumn(Direction.RIGHT, n);
 	} else if (jrb_left.isSelected()) {
-	    t.insertColumn(Direction.LEFT);
+	    t.insertColumn(Direction.LEFT, n);
 	} else if (jrb_upper.isSelected()) {
-	    t.insertRow(Direction.UPPER);
+	    t.insertRow(Direction.UPPER, n);
 	} else if (jrb_lower.isSelected()) {
-	    t.insertRow(Direction.LOWER);
+	    t.insertRow(Direction.LOWER, n);
 	}
 	setVisible(false);
     }
