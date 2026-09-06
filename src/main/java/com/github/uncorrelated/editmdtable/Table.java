@@ -1199,9 +1199,9 @@ public class Table extends Container {
 	}
     }
 
-    public void insertColumn(Direction direction) {
+    public void insertColumn(Direction direction, int n) {
 	int[] cols = jt.getSelectedColumns();
-	cols = ViewToOpt(cols, Direction.RIGHT == direction);
+	cols = ViewToOpt(cols, n, Direction.RIGHT == direction);
 	insertColumn(cols);
 	gui.dataChanged();
 	undoManager.addEdit(new InsertColumnEdit(cols));
@@ -1250,39 +1250,61 @@ public class Table extends Container {
 	}
     }
 
-    public void insertRow(Direction direction) {
+    public void insertRow(Direction direction, int n) {
 	int[] rows = jt.getSelectedRows();
-	rows = ViewToOpt(rows, Direction.LOWER == direction);
+	rows = ViewToOpt(rows, n, Direction.LOWER == direction);
 	insertRows(rows);
 	gui.dataChanged();
 	undoManager.addEdit(new InsertRowEdit(rows));
     }
 
-    private int[] ViewToOpt(int[] view_n, boolean DirectionFlag) {
-	int[] opt_n = new int[view_n.length];
-	for (int i = 0; i < view_n.length; i++) {
-	    if (DirectionFlag) {
-		opt_n[i] = view_n[i] + 1;
-		for (int j = i - 1; j >= 0; j--) {
-		    if (1 >= view_n[j + 1] - view_n[j]) {
-			opt_n[j] = opt_n[i];
-		    } else {
-			// 挿入する度に位置がずれるため補正
-			opt_n[i] = view_n[i] + i + 1;
+    private int[] ViewToOpt(int[] view_n, int n, boolean DirectionFlag) {
+	int[] ip_n = new int[view_n.length]; // 本当の挿入位置を保持する配列
+
+	// 連続したセルを選択しているときは、選択セルの位置にそのままは挿入せず、選択ブロックの端を挿入位置とする
+	if(DirectionFlag){
+	    for(int i = view_n.length - 1; i >= 0; i--){
+		int ip = view_n[i] + 1;
+		ip_n[i] = ip;
+		for(int j = i - 1; j >= 0; j--){
+		    if(view_n[j + 1] - view_n[j] > 1){
+			break;
 		    }
+		    ip_n[j] = ip;
+		    i--;
 		}
-	    } else {
-		opt_n[i] = view_n[i];
-		for (int j = i - 1; j >= 0; j--) {
-		    if (1 >= view_n[j + 1] - view_n[j]) {
-			opt_n[i] = opt_n[j];
-		    } else {
-			// 挿入する度に位置がずれるため補正
-			opt_n[i] = view_n[i] + i;
+	    }
+	} else {
+	    for(int i = 0; i < view_n.length; i++){
+		int ip = view_n[i];
+		ip_n[i] = ip;
+		for(int j = i + 1; j < view_n.length; j++){
+		    if(view_n[j] - view_n[j - 1] > 1){
+			break;
 		    }
+		    ip_n[j] = ip;
+		    i++;
 		}
 	    }
 	}
+
+	int[] opt_n = new int[n * view_n.length];
+	for (int k = 0; k < n; k++){
+	    for (int i = 0; i < view_n.length; i++) {
+		opt_n[i + k*view_n.length] = ip_n[i];
+		// 挿入する度に、次の挿入位置がずれるため補正
+		int j = i;
+		if(DirectionFlag){
+		    while(j < view_n.length && ip_n[i] == ip_n[j]){
+			j++;
+		    }
+		}
+		while(j < view_n.length){
+		    ip_n[j++]++;
+		}
+	    }
+	}
+
 	return opt_n;
     }
 
