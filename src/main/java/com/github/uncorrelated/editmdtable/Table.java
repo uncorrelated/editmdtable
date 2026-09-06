@@ -629,6 +629,8 @@ public class Table extends Container {
 	int[] HorizonalAlign = new int[table.length];
 	int ha = JLabel.LEFT;
 	for (int j = 0; j < table.length; j++) {
+	    if(null == table[j][row])
+		continue;
 	    char[] a = table[j][row].toCharArray();
 	    for (int k = 0; k < a.length; k++) {
 		if (':' != a[k] && '-' != a[k]) {
@@ -1474,8 +1476,8 @@ public class Table extends Container {
 	}
 	int nrow = jt.getRowCount();
 	int ncol = jt.getColumnCount();
-	int r = srows[0];
-	int c = scols[0];
+	int r = srows.length > 0 ? srows[0]: 0;
+	int c = scols.length > 0 ? scols[0]: 0;
 	int dc = size[1] - ncol + c;
 	int dr = size[0] - nrow + r;
 	String msg = null;
