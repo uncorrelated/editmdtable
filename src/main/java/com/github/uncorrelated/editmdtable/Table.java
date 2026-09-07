@@ -597,21 +597,24 @@ public class Table extends Container {
     
     public void copyFromRawToLabel() {
 	DefaultTableModel model = (DefaultTableModel) jt.getModel();
+
 	int[] rows = jt.getSelectedRows();
 	int[] columns = jt.getSelectedColumns();
 	ArrayList<ColumnLabel>al = new ArrayList();
 
+	JTableHeader header = jt.getTableHeader();
 	TableColumnModel tcm = jt.getColumnModel();
 	IsOnGoingUndoRedo = true;
-	
+
 	for(int i = 0; i < rows.length; i++){
 	    int model_r = jt.convertRowIndexToModel(rows[i]);
 	    for(int j = 0; j < columns.length; j++){
 		int model_c = jt.convertColumnIndexToModel(columns[j]);
-		TableColumn tc = tcm.getColumn(model_c);
-		String old_str = (String)tc.getHeaderValue();
-		String new_str = (String)model.getValueAt(rows[i], columns[j]);
+		TableColumn tc = tcm.getColumn(columns[j]);
+		String old_str = tc.getHeaderValue().toString();
+		String new_str = (String)model.getValueAt(model_r, model_c);
 		tc.setHeaderValue(new_str);
+		identifiers[model_c] = new_str;
 		al.add(new ColumnLabel(tc, old_str, new_str));
 	    }
 	}
