@@ -586,10 +586,10 @@ public class Table extends Container {
     }
 
     private class ColumnLabel {
-	final TableColumn tc;
+	final int view_c;
 	final String old_str, new_str;
-	public ColumnLabel(TableColumn tc, String old_str, String new_str){
-	    this.tc = tc;
+	public ColumnLabel(int view_c, String old_str, String new_str){
+	    this.view_c = view_c;
 	    this.old_str = old_str;
 	    this.new_str = new_str;
 	}
@@ -615,7 +615,7 @@ public class Table extends Container {
 		String new_str = (String)model.getValueAt(model_r, model_c);
 		tc.setHeaderValue(new_str);
 		identifiers[model_c] = new_str;
-		al.add(new ColumnLabel(tc, old_str, new_str));
+		al.add(new ColumnLabel(columns[j], old_str, new_str));
 	    }
 	}
 
@@ -963,6 +963,11 @@ public class Table extends Container {
 	    super.redo();
 	    // 再度ビューから削除する
 	    TableColumnModel columnModel = jt.getColumnModel();
+	    // 削除するTableColumnは最取得する必要がある
+	    // 列の追加が入るところまでundoすると、表示とTableColumnの対応が崩れるため
+	    for (int j = 0; j < viewIndexes.length; j++) {
+		columns[j] = columnModel.getColumn(viewIndexes[j]);
+	    }
 	    for (int j = 0; j < columns.length; j++) {
 		columnModel.removeColumn(columns[j]);
 	    }
@@ -985,7 +990,9 @@ public class Table extends Container {
 	    Iterator it = cells.iterator();
 	    while (it.hasNext()) {
 		Cell c = (Cell) it.next();
-		model.setValueAt(c.old_str, c.model_r, c.model_c);
+		int model_r = jt.convertRowIndexToModel(c.view_r);
+		int model_c = jt.convertColumnIndexToModel(c.view_c);
+		model.setValueAt(c.old_str, model_r, model_c);
 	    }
 	    IsOnGoingUndoRedo = false;
 	}
@@ -998,7 +1005,9 @@ public class Table extends Container {
 	    Iterator it = cells.iterator();
 	    while (it.hasNext()) {
 		Cell c = (Cell) it.next();
-		model.setValueAt(c.new_str, c.model_r, c.model_c);
+		int model_r = jt.convertRowIndexToModel(c.view_r);
+		int model_c = jt.convertColumnIndexToModel(c.view_c);
+		model.setValueAt(c.new_str, model_r, model_c);
 	    }
 	    IsOnGoingUndoRedo = false;
 	}
@@ -1017,10 +1026,12 @@ public class Table extends Container {
 	    super.undo();
 	    IsOnGoingUndoRedo = true;
 
+	    TableColumnModel tcm = jt.getColumnModel();
+
 	    Iterator it = labels.iterator();
 	    while (it.hasNext()) {
 		ColumnLabel cl = (ColumnLabel) it.next();
-		TableColumn tc = cl.tc;
+		TableColumn tc = tcm.getColumn(cl.view_c);
 		tc.setHeaderValue(cl.old_str);
 	    }
 
@@ -1033,10 +1044,12 @@ public class Table extends Container {
 	    super.redo();
 	    IsOnGoingUndoRedo = true;
 
+	    TableColumnModel tcm = jt.getColumnModel();
+
 	    Iterator it = labels.iterator();
 	    while (it.hasNext()) {
 		ColumnLabel cl = (ColumnLabel) it.next();
-		TableColumn tc = cl.tc;
+		TableColumn tc = tcm.getColumn(cl.view_c);
 		tc.setHeaderValue(cl.new_str);
 	    }
 
@@ -1349,11 +1362,9 @@ public class Table extends Container {
 	public int view_r, view_c, model_r, model_c;
 	public String old_str, new_str;
 
-	public Cell(int view_r, int view_c, int model_r, int model_c, String old_str, String new_str) {
+	public Cell(int view_r, int view_c, String old_str, String new_str) {
 	    this.view_r = view_r;
 	    this.view_c = view_c;
-	    this.model_r = model_r;
-	    this.model_c = model_c;
 	    this.old_str = old_str;
 	    this.new_str = new_str;
 	}
@@ -1417,7 +1428,7 @@ public class Table extends Container {
 		String s = pa[r][c];
 		int model_r = jt.convertRowIndexToModel(rows[i]);
 		int model_c = jt.convertColumnIndexToModel(columns[j]);
-		cells.add(new Cell(rows[i], columns[j], model_r, model_c, (String) model.getValueAt(model_r, model_c), s));
+		cells.add(new Cell(rows[i], columns[j], (String) model.getValueAt(model_r, model_c), s));
 		model.setValueAt(s, model_r, model_c);
 	    }
 	}
