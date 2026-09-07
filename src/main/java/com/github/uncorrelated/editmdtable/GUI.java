@@ -35,6 +35,8 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -48,6 +50,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JSlider;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -130,6 +133,32 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	cp_dialog = new ColumnPropertiesDialog(this, rb);
 
 	add(jtp, BorderLayout.CENTER);
+	InputMap im = jtp.getInputMap();
+	ActionMap am = jtp.getActionMap();
+
+	im.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, KeyEvent.CTRL_DOWN_MASK, false), "Undo");
+	AbstractAction aa_undo = new AbstractAction() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+		Table t1 = (Table) jtp.getSelectedComponent();
+		if (null != t1) {
+		    t1.undo();
+		}
+	    }
+	};
+	am.put("Undo", aa_undo);
+
+	im.put(KeyStroke.getKeyStroke(KeyEvent.VK_Y, KeyEvent.CTRL_DOWN_MASK, false), "Redo");
+	AbstractAction aa_redo = new AbstractAction() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+		Table t1 = (Table) jtp.getSelectedComponent();
+		if (null != t1) {
+		    t1.redo();
+		}
+	    }
+	};
+	am.put("Redo", aa_redo);
 
 	JMenuBar jmb = new JMenuBar();
 	String[] jmenu_str = new String[]{
@@ -259,27 +288,11 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	jm[2].add(new JMenuItem(a_copy_to_label));
 
 	JMenuItem jmi_undo = new JMenuItem(rb.getString("menu.undo"));
-	jmi_undo.addActionListener(new ActionListener() {
-	    @Override
-	    public void actionPerformed(ActionEvent e) {
-		Table t1 = (Table) jtp.getSelectedComponent();
-		if (null != t1) {
-		    t1.undo();
-		}
-	    }
-	});
+	jmi_undo.addActionListener(aa_undo);
 	jm[3].add(jmi_undo);
 
 	JMenuItem jmi_redo = new JMenuItem(rb.getString("menu.redo"));
-	jmi_redo.addActionListener(new ActionListener() {
-	    @Override
-	    public void actionPerformed(ActionEvent e) {
-		Table t1 = (Table) jtp.getSelectedComponent();
-		if (null != t1) {
-		    t1.redo();
-		}
-	    }
-	});
+	jmi_redo.addActionListener(aa_redo);
 	jm[3].add(jmi_redo);
 
         Action a_jmi_copy = new AbstractAction(rb.getString("menu.copy")) {
