@@ -1358,7 +1358,7 @@ public class Table extends Container {
 	}
     }
 
-    public void pasteChar(final char[] a, int[] size, final char separator, boolean transpose) {
+    public void pasteChar(final char[] a, final int[] size, final char separator, boolean transpose) {
 
 	DefaultTableModel model = (DefaultTableModel) jt.getModel();
 	int[] columns = jt.getSelectedColumns();
@@ -1372,7 +1372,6 @@ public class Table extends Container {
 		    pa_t[j][i] = pa[i][j];
 		}
 	    }
-	    size = new int[]{size[1], size[0]};
 	    pa = pa_t;
 	}
 	
