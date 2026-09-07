@@ -284,7 +284,7 @@ public class IO {
 	    }
 	}
 	if (0 < ca.length) {
-	    if (1 != ca.length)
+	    if (2 <= nc)
 		nc--; // | だけの行以外、行頭の | の分はのぞいて | の数を列数にする
 	    if (0 < l && nc < ++j) {
 		nc++; // 最後の行の行末が | で終わらないときは足す
