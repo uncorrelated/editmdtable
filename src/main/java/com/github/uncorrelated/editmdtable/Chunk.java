@@ -74,9 +74,13 @@ public final class Chunk {
 
     private ByteArrayOutputStream toByteArrayOutputStream() {
 	ByteArrayOutputStream out = new ByteArrayOutputStream();
+	if (null == table || table.length < 1) {
+	    return out;
+	}
 	for (int i = 0; i < table[0].length; i++) {
-	    if(0 < i)
+	    if (0 < i) {
 		out.write(lf, 0, lf.length);
+	    }
 	    for (int j = 0; j < table.length; j++) {
 		out.write(vbar, 0, vbar.length);
 		writeEscaped(out, table[j][i].getBytes());
