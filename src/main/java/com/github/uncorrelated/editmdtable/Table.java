@@ -225,8 +225,8 @@ public class Table extends Container {
 	container_replace.setLayout(new BorderLayout(4, 4));
 	Container container_r_west = new Container();
 	container_r_west.setLayout(new GridLayout(2, 1));
-	container_r_west.add(movement_v = new JRadioButton(rb.getString("row")));
-	container_r_west.add(movement_h = new JRadioButton(rb.getString("column")));
+	container_r_west.add(movement_v = new JRadioButton(rb.getString("column")));
+	container_r_west.add(movement_h = new JRadioButton(rb.getString("row")));
 	movement_v.setSelected(true);
 	replace_bg.add(movement_v);
 	replace_bg.add(movement_h);
