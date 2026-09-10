@@ -436,7 +436,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	try {
 	    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 	} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
-	    e.printStackTrace();
+	    Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, e);
 	}
 	SwingUtilities.updateComponentTreeUI(this);
     }
