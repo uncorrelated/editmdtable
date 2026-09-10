@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+    <head>
+	<title>About</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+	<h1>マークダウンの表だけエディター</h1>
+	<h2>1. ソフトの概要</h2>
+	<p>Markdown形式テキスト中の表を編集するツールです。列の挿入や入れ替え、コピペなどが手軽に行えます。</p>
+	<h2>2. 作者への連絡先(メールアドレス、掲示板 等)</h2>
+	<p>作者のメールアドレス: uncorrelated@yahoo.co.jp</p>
+	<p>ソースコードとJarファイルはGitHubリポジトリー https://github.com/uncorrelated/editmdtable で配布しています。</p>
+    </body>
+</html>
