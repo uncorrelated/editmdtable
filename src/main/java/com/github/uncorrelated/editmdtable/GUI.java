@@ -27,7 +27,13 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,35 +65,37 @@ import javax.swing.event.MouseInputListener;
 import javax.swing.filechooser.FileFilter;
 
 public class GUI extends JFrame implements MouseInputListener, WindowListener, DropTargetListener {
-    
+
     private static final ResourceBundle rb = ResourceBundle.getBundle("com.github.uncorrelated.editmdtable.GUI");
     private JTextField jtf = new JTextField();
     private final JTabbedPane jtp = new JTabbedPane();
     private DirectionToAddDialog add_dialog = null;
     private DirectionToDeleteDialog delete_dialog = null;
     private ColumnPropertiesDialog cp_dialog = null;
+    private ChooseFontDialog cf_dialog = null;
     private JMenu[] jm;
     private JMenuItem jmi_save;
     private JButton btn_save;
+    private final JSlider js_fontsize = new JSlider(50, 250, 100);
     private IO io;
     private int[] table_indexes;
     private boolean IsUpdate = false;
     private volatile boolean IsDoingIO = false;
     private JPopupMenu popup_menu = new JPopupMenu();
-    
+
     public GUI() {
 	super(rb.getString("application.name") + " " + rb.getString("application.version"));
-	
+
 	setComponentSize(this, 0.8);
-	
+
 	try {
 	    setIconImage(ImageIO.read(this.getClass().getResource("icon.png")));
 	} catch (IOException ex) {
 	    Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
 	}
-	
+
 	setLayout(new BorderLayout());
-	
+
 	Container tf_btn = new Container();
 	JButton jb = new JButton(rb.getString("button.load"));
 	jb.addActionListener(new ActionListener() {
@@ -113,11 +121,10 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	btn_save.setEnabled(false);
 	tf_btn.add(tf_btn_east, BorderLayout.EAST);
 	add(tf_btn, BorderLayout.NORTH);
-	
+
 	Container js_c = new Container();
 	js_c.setLayout(new BorderLayout());
 	js_c.add(new JLabel(rb.getString("font.size")), BorderLayout.WEST);
-	JSlider js_fontsize = new JSlider(50, 250, 100);
 	js_fontsize.addChangeListener(new ChangeListener() {
 	    @Override
 	    public void stateChanged(ChangeEvent e) {
@@ -126,15 +133,15 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	});
 	js_c.add(js_fontsize, BorderLayout.CENTER);
 	add(js_c, BorderLayout.SOUTH);
-	
+
 	add_dialog = new DirectionToAddDialog(this, rb);
 	delete_dialog = new DirectionToDeleteDialog(this, rb);
 	cp_dialog = new ColumnPropertiesDialog(this, rb);
-	
+
 	add(jtp, BorderLayout.CENTER);
 	InputMap im = jtp.getInputMap();
 	ActionMap am = jtp.getActionMap();
-	
+
 	im.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, KeyEvent.CTRL_DOWN_MASK, false), "Undo");
 	AbstractAction aa_undo = new AbstractAction() {
 	    @Override
@@ -146,7 +153,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    }
 	};
 	am.put("Undo", aa_undo);
-	
+
 	im.put(KeyStroke.getKeyStroke(KeyEvent.VK_Y, KeyEvent.CTRL_DOWN_MASK, false), "Redo");
 	AbstractAction aa_redo = new AbstractAction() {
 	    @Override
@@ -158,7 +165,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    }
 	};
 	am.put("Redo", aa_redo);
-	
+
 	JMenuBar jmb = new JMenuBar();
 	String[] jmenu_str = new String[]{
 	    "menu.file", "menu.column", "menu.row", "menu.edit", "menu.view", "menu.help"
@@ -180,14 +187,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    jm[i].setMnemonic(jmenu_ke[i]);
 	}
 	setJMenuBar(jmb);
-	
-	setUI();
-	
-	addWindowListener(this);
-	moveCenter(this);
-	setVisible(true);
-	initialFont = getFont();
-	
+
 	JMenuItem jmi_load = new JMenuItem(rb.getString("button.load"));
 	jmi_load.addActionListener(new ActionListener() {
 	    @Override
@@ -213,7 +213,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    }
 	});
 	jm[0].add(jmi_close);
-	
+
 	JMenuItem jmi_edit = new JMenuItem(rb.getString("menu.rename"));
 	jm[1].add(jmi_edit);
 	jmi_edit.addActionListener((ActionEvent e) -> {
@@ -222,7 +222,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 		cp_dialog.renameSelectedColumn(t1);
 	    }
 	});
-	
+
 	JMenuItem jmi_insert_column = new JMenuItem(rb.getString("menu.insert"));
 	jmi_insert_column.addActionListener((ActionEvent e) -> {
 	    Table t1 = (Table) jtp.getSelectedComponent();
@@ -232,7 +232,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    }
 	});
 	jm[1].add(jmi_insert_column);
-	
+
 	JMenuItem jmi_delete = new JMenuItem(rb.getString("menu.delete"));
 	jmi_delete.addActionListener(new ActionListener() {
 	    @Override
@@ -255,7 +255,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 		add_dialog.askDirection(t1);
 	    }
 	});
-	
+
 	JMenuItem jmi_insert_raw = new JMenuItem(rb.getString("menu.insert"));
 	jm[2].add(jmi_insert_raw);
 	jmi_insert_raw.addActionListener((ActionEvent e) -> {
@@ -265,7 +265,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 		add_dialog.askDirectionToAddARow(t1);
 	    }
 	});
-	
+
 	JMenuItem jmi_delete_row = new JMenuItem(rb.getString("menu.delete"));
 	jm[2].add(jmi_delete_row);
 	jmi_delete_row.addActionListener((ActionEvent e) -> {
@@ -275,7 +275,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 		t1.clearSelection();
 	    }
 	});
-	
+
 	Action a_copy_to_label = new AbstractAction(rb.getString("menu.copy_to_label")) {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
@@ -286,15 +286,15 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    }
 	};
 	jm[2].add(new JMenuItem(a_copy_to_label));
-	
+
 	JMenuItem jmi_undo = new JMenuItem(rb.getString("menu.undo"));
 	jmi_undo.addActionListener(aa_undo);
 	jm[3].add(jmi_undo);
-	
+
 	JMenuItem jmi_redo = new JMenuItem(rb.getString("menu.redo"));
 	jmi_redo.addActionListener(aa_redo);
 	jm[3].add(jmi_redo);
-	
+
 	Action a_jmi_copy = new AbstractAction(rb.getString("menu.copy")) {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
@@ -306,7 +306,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	};
 	jm[3].add(new JMenuItem(a_jmi_copy));
 	popup_menu.add(new JMenuItem(a_jmi_copy));
-	
+
 	Action a_jmi_cut = new AbstractAction(rb.getString("menu.cut")) {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
@@ -318,7 +318,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	};
 	jm[3].add(new JMenuItem(a_jmi_cut));
 	popup_menu.add(new JMenuItem(a_jmi_cut));
-	
+
 	Action a_jmi_paste = new AbstractAction(rb.getString("menu.paste")) {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
@@ -330,7 +330,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	};
 	jm[3].add(new JMenuItem(a_jmi_paste));
 	popup_menu.add(new JMenuItem(a_jmi_paste));
-	
+
 	Action a_jmi_paste_t = new AbstractAction(rb.getString("menu.paste.t")) {
 	    @Override
 	    public void actionPerformed(ActionEvent e) {
@@ -342,17 +342,17 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	};
 	jm[3].add(new JMenuItem(a_jmi_paste_t));
 	popup_menu.add(new JMenuItem(a_jmi_paste_t));
-	
+
 	popup_menu.add(jmi_insert);
 	popup_menu.add(new JMenuItem(a_copy_to_label));
-	
+
 	JMenuItem jmi_replace = new JMenuItem(rb.getString("menu.replace"));
 	jmi_replace.addActionListener((e) -> {
 	    Table t1 = (Table) jtp.getSelectedComponent();
 	    t1.toggleVisibilityReplaceForm();
 	});
 	jm[3].add(jmi_replace);
-	
+
 	JMenuItem jmi_filter = new JMenuItem(rb.getString("menu.filter"));
 	jmi_filter.addActionListener((ActionEvent e) -> {
 	    Table t1 = (Table) jtp.getSelectedComponent();
@@ -361,6 +361,13 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    }
 	});
 	jm[4].add(jmi_filter);
+
+	cf_dialog = new ChooseFontDialog(this, rb);
+	JMenuItem jmi_font = new JMenuItem(rb.getString("menu.font"));
+	jmi_font.addActionListener((ActionEvent e) -> {
+	    cf_dialog.setVisible(true);
+	});
+	jm[4].add(jmi_font);
 	
 	JMenuItem jmi_about = new JMenuItem(rb.getString("menu.about"));
 	MessageDialog md = new MessageDialog(this, rb, rb.getString("about.title"), rb.getString("about.html"));
@@ -369,19 +376,98 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    md.setVisible(true);
 	});
 	jm[5].add(jmi_about);
+
+	setUI();
+
+	addWindowListener(this);
+	moveCenter(this);
+
+	initialFont = getInitialFont();
+	setAllFont(initialFont);
 	
+	setVisible(true);
     }
-    
+
     public GUI(String fname) {
 	this();
 	openFile(fname);
     }
-    
+
     private final Font initialFont;
+
+    private Path getUserSettingFileName(){
+	return Paths.get(System.getProperty("user.home"), ".editmdtable.properties");
+    }
     
-    public void setFontSize(int size) {
-	double fsize = ((double) size / 100) * initialFont.getSize();
-	Font font = new Font(initialFont.getFamily(), initialFont.getStyle(), (int) fsize);
+    private Font getInitialFont() {
+	Properties properties = new Properties();
+	String fontString = null;
+	Path cp = getUserSettingFileName();
+	if (Files.exists(cp)) {
+	    try (InputStream is = Files.newInputStream(cp)) {
+		properties.load(is);
+		fontString = properties.getProperty("font.jfname");
+	    } catch (IOException e) {
+		Logger.getLogger(GUI.class.getName()).log(Level.INFO, null, e);
+	    }
+	}
+	if(null == fontString) {
+	    try {
+		fontString = rb.getString("font.jframe");
+	    } catch (java.util.MissingResourceException e){
+		Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, e);
+	    }
+	}
+	if (null != fontString) {
+	    String[] fontStrings = fontString.split("[ \t]*,[ \t]*");
+	    if(3 <= fontStrings.length){
+		String family = fontStrings[0];
+		String styleString = fontStrings[1];
+		String sizeString = fontStrings[2];
+		int style = Font.PLAIN;
+		if ("BOLD".equals(styleString)) {
+		    style = Font.BOLD;
+		} else if ("ITALIC".equals(styleString)) {
+		    style = Font.ITALIC;
+		}
+		try {
+		    int size = Integer.parseInt(sizeString);
+		    return new Font(family, style, size);
+		} catch (java.lang.NumberFormatException e){
+		    Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, e);
+		}
+	    } else {
+		System.err.println("Invalid property: font.jframe");
+	    }
+	}
+	return getFont();
+    }
+
+    public void saveFontSetting(){
+	Font f = getFont();
+	String styleString = "PLAIN";
+	switch(f.getStyle()){
+	    case Font.ITALIC:
+		styleString = "ITALIC";
+		break;
+	    case Font.BOLD:
+		styleString = "BOLD";
+		break;
+	}
+	Path cp = getUserSettingFileName();
+	Properties properties = new Properties();
+	String value = String.format("%s, %s, %d", f.getFamily(), styleString, initialFont.getSize());
+	properties.setProperty("font.jfname", value);
+	try (OutputStream os = Files.newOutputStream(cp)) {
+// Java 9以降はnullの代わりにbを入れたい
+//	    byte[] b = String.format("%s Configuration Settings", rb.getString("application.name")).getBytes("UTF-8");
+            properties.store(os, null);
+	} catch (IOException e) {
+	    Logger.getLogger(GUI.class.getName()).log(Level.WARNING, null, e);
+	}
+    }
+
+    private void setAllFont(Font font){
 	FontUtils.changeFontAll(this, font);
 	FontUtils.changeFontAll(add_dialog, font);
 	FontUtils.changeFontAll(delete_dialog, font);
@@ -399,10 +485,22 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	}
     }
     
+    public void changeFont(Font font){
+	int size = js_fontsize.getValue();
+	double fsize = ((double) size / 100) * initialFont.getSize();
+	setAllFont(new Font(font.getFamily(), font.getStyle(), (int) fsize));
+    }
+
+    public void setFontSize(int size) {
+	double fsize = ((double) size / 100) * initialFont.getSize();
+	Font font = getFont();
+	setAllFont(new Font(font.getFamily(), font.getStyle(), (int) fsize));
+    }
+
     public ResourceBundle getResourceBundle() {
 	return rb;
     }
-    
+
     public void dataChanged() {
 	if (!IsUpdate && null != io && io.isWritable()) {
 	    IsUpdate = true;
@@ -410,11 +508,11 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    jmi_save.setEnabled(true);
 	}
     }
-    
+
     public void setEditEnable(boolean flag) {
 	jm[1].setEnabled(flag);
     }
-    
+
     public void moveCenter(Component c) {
 	Rectangle screen = getGraphicsConfiguration().getBounds();
 	if (this == c) {
@@ -431,7 +529,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    c.setLocation(x, y);
 	}
     }
-    
+
     private void setUI() {
 	try {
 	    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -440,14 +538,14 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	}
 	SwingUtilities.updateComponentTreeUI(this);
     }
-    
-    private void setComponentSize(Component c, double coef) {
+
+    protected void setComponentSize(Component c, double coef) {
 	Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 	int size_w = (int) (coef * screenSize.width);
 	int size_h = (int) (coef * screenSize.height);
 	c.setSize(size_w, size_h);
     }
-    
+
     public void openFileChooser() {
 	synchronized (jtp) {
 	    if (IsDoingIO) {
@@ -455,7 +553,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    }
 	    IsDoingIO = true;
 	}
-	
+
 	JFileChooser fc = new JFileChooser() {
 	    @Override
 	    protected JDialog createDialog(Component parent) throws HeadlessException {
@@ -467,10 +565,10 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 		return dialog;
 	    }
 	};
-	
+
 	fc.setFileFilter(new FileFilter() {
 	    String[] exts = new String[]{"md", "qmd", "Rmd", "txt"};
-	    
+
 	    public boolean accept(File f) {
 		if (f.isDirectory()) {
 		    return true;
@@ -488,7 +586,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 		}
 		return false;
 	    }
-	    
+
 	    public String getDescription() {
 		return "Markdown Files";
 	    }
@@ -500,7 +598,7 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    IsDoingIO = false;
 	}
     }
-    
+
     private void setNoUpdate() {
 	SwingUtilities.invokeLater(new Runnable() {
 	    public void run() {
@@ -510,12 +608,12 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    }
 	});
     }
-    
+
     private void openFile(String fpath) {
-	
+
 	jtf.setText(fpath);
 	jtp.removeAll();
-	
+
 	new Thread(new Runnable() {
 	    @Override
 	    public void run() {
@@ -526,13 +624,13 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 			}
 			io = new IO(fpath);
 			table_indexes = io.listTable();
-			
+
 			SwingUtilities.invokeLater(new Runnable() {
 			    public void run() {
 				changeTabFont();
 			    }
 			});
-			
+
 			for (int i = 0; i < table_indexes.length; i++) {
 			    String[][] table = io.readTable(table_indexes[i]);
 			    String heading = io.getLastHeading(table_indexes[i]);
@@ -542,9 +640,9 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 				}
 			    });
 			}
-			
+
 			setNoUpdate();
-			
+
 		    } catch (IOException ex) {
 			Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
 		    } finally {
@@ -555,21 +653,21 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	}
 	).start();
     }
-    
+
     public void changeTabFont() {
 	FontUtils.changeFontAll(jtp, this.getFont());
     }
-    
+
     public void addTableTab(String heading, String[][] table) {
 	Table t = new Table(this, add_dialog, delete_dialog, cp_dialog, table);
 	jtp.addTab(heading, t);
-	
+
 	FontUtils.changeFontAll(t, this.getFont());
 	t.modifyCellHeight();
     }
-    
+
     public void save() {
-	
+
 	if (null == io || !io.isWritable()) {
 	    JOptionPane.showMessageDialog(
 		    null,
@@ -579,20 +677,20 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    );
 	    return;
 	}
-	
+
 	synchronized (jtp) {
 	    if (IsDoingIO || !IsUpdate) {
 		return;
 	    }
 	    IsDoingIO = true;
 	}
-	
+
 	String[][][] array = new String[table_indexes.length][][];
 	for (int i = 0; i < table_indexes.length; i++) {
 	    Table t = (Table) jtp.getComponentAt(i);
 	    array[i] = t.getTable();
 	}
-	
+
 	new Thread(new Runnable() {
 	    public void run() {
 		synchronized (jtp) {
@@ -614,12 +712,12 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	    }
 	}).start();
     }
-    
+
     @Override
     public void windowOpened(WindowEvent e) {
-	
+
     }
-    
+
     @Override
     public void windowClosing(WindowEvent e) {
 	try {
@@ -631,86 +729,86 @@ public class GUI extends JFrame implements MouseInputListener, WindowListener, D
 	}
 	System.exit(0);
     }
-    
+
     @Override
     public void windowClosed(WindowEvent e) {
     }
-    
+
     @Override
     public void windowIconified(WindowEvent e) {
-	
+
     }
-    
+
     @Override
     public void windowDeiconified(WindowEvent e) {
-	
+
     }
-    
+
     @Override
     public void windowActivated(WindowEvent e) {
-	
+
     }
-    
+
     @Override
     public void windowDeactivated(WindowEvent e) {
-	
+
     }
-    
+
     private void showPopupMenu(MouseEvent e) {
 	if (e.isPopupTrigger()) {
 	    popup_menu.show(e.getComponent(), e.getX(), e.getY());
 	}
     }
-    
+
     @Override
     public void mouseClicked(MouseEvent e) {
     }
-    
+
     @Override
     public void mousePressed(MouseEvent e) {
 	showPopupMenu(e);
     }
-    
+
     @Override
     public void mouseReleased(MouseEvent e) {
 	showPopupMenu(e);
     }
-    
+
     @Override
     public void mouseEntered(MouseEvent e) {
     }
-    
+
     @Override
     public void mouseExited(MouseEvent e) {
     }
-    
+
     @Override
     public void mouseDragged(MouseEvent e) {
     }
-    
+
     @Override
     public void mouseMoved(MouseEvent e) {
     }
-    
+
     @Override
     public void dragEnter(DropTargetDragEvent dtde) {
     }
-    
+
     @Override
     public void dragOver(DropTargetDragEvent dtde) {
     }
-    
+
     @Override
     public void dropActionChanged(DropTargetDragEvent dtde) {
     }
-    
+
     @Override
     public void dragExit(DropTargetEvent dte) {
     }
-    
+
     private DropTarget dropTarget = new DropTarget(this,
 	    DnDConstants.ACTION_COPY, this, true);
-    
+
     @Override
     public void drop(DropTargetDropEvent dtde) {
 	if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
