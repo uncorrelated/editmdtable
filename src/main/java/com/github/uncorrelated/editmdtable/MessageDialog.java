@@ -3,6 +3,7 @@ package com.github.uncorrelated.editmdtable;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
@@ -53,12 +54,12 @@ public class MessageDialog extends TemplateDialog {
 	    }
 	});
 	Container c = new Container();
-	c.setLayout(new GridLayout(1, 3));
-	c.add(new JPanel());
+	c.setLayout(new FlowLayout());
 	c.add(jb);
-	c.add(new JPanel());
 	add(c, BorderLayout.SOUTH);
-
+	
 	pack();
+
+	((GUI)owner).setComponentSize(this, 0.7);
     }
 }
