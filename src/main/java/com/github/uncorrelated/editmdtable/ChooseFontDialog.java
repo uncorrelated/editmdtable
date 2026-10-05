@@ -8,6 +8,7 @@ import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
@@ -29,7 +30,16 @@ public class ChooseFontDialog extends TemplateDialog {
 	GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 	String[] fontNames = ge.getAvailableFontFamilyNames();
 
-	jlst = new JList(fontNames);
+	ArrayList<String>al = new ArrayList(); 
+	final String alphabets = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	for(String fn : fontNames){
+	    Font f = new Font(fn, Font.PLAIN, 12);
+	    if(0 > f.canDisplayUpTo(alphabets)){
+		al.add(fn);
+	    }
+	}
+	
+	jlst = new JList(al.toArray());
 	jlst.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 	jlst.setSelectedIndex(0);
 
